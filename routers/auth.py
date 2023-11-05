@@ -1,42 +1,13 @@
-import uvicorn
-import firebase_admin
-from routers import auth as auth_router, users
-
-import json
-
-from firebase_admin import credentials, auth, firestore_async
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import HTTPException
 from schemas.auth import SignUpSchema, LoginSchema
-from utils import firestore_db, firebase_config
-
-
-
 import requests
-cred = credentials.Certificate("private_key.json")
+from firebase_admin import credentials, auth, firestore_async
+from utils import firestore_db
 
+router = APIRouter()
 
-
-
-app = FastAPI(
-    title="Firebase Auth API",
-    description="Firebase Auth API",
-
-)
-
-allow_all = ["*"]
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=allow_all,
-    allow_methods=allow_all,
-    allow_headers=allow_all,
-)
-
-
-@app.post("/signup")
+@router.post("/signup")
 async def signup(
     user: SignUpSchema,
 ):
@@ -80,7 +51,7 @@ async def signup(
         return HTTPException(detail={"message": str(e)}, status_code=400)
 
 
-@app.post("/login")
+@router.post("/login")
 async def loginfirebase(user: LoginSchema):
     email = user.email
     password = user.password
@@ -90,36 +61,9 @@ async def loginfirebase(user: LoginSchema):
         headers = {"Content-Type": "application/json"}
         response = requests.post(signin_url, headers=headers, json=payload)
         print(response.json())
+
         return JSONResponse(content=response.json(), status_code=200)
     except:
         return HTTPException(
             detail={"message": "There was an error logging in"}, status_code=400
         )
-
-
-# ping route
-@app.post("/ping")
-async def validate(request: Request):
-    headers = request.headers
-    jwt = headers.get("authorization")
-    print(f"jwt:{jwt}")
-    user = auth.verify_id_token(jwt)
-    print(f"user:{user}")
-    return user["uid"]
-
-
-app.include_router(
-    router=auth_router.router,
-    prefix="/auth",
-    tags=["auth"],
-    responses={404: {"description": "Not found"}},
-),
-app.include_router(
-    router=users.router,
-    prefix="/users",
-    tags=["users"],
-    responses={404: {"description": "Not found"}},
-)
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", reload=True)
