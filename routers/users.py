@@ -6,6 +6,7 @@ from schemas.auth import PasswordResetSchema
 from fastapi.responses import JSONResponse
 from utils import firestore_db, ExceptionResponse
 from firebase_admin import auth
+from utils import user_exists
 
 router = APIRouter()
 
@@ -28,6 +29,9 @@ async def update_user(updated_user: UserSchema, request: Request = None):
     updated_email = updated_user.email
     updated_username = updated_user.username
     updated_fullname = updated_user.full_name
+    if await user_exists(updated_username) :
+        """If the user already exists, return a 400"""
+        return ExceptionResponse(name="UserNameExists", message=f"User with {updated_username} already exists")
     try:
         auth_user = request.state.auth_user
         auth.update_user(
