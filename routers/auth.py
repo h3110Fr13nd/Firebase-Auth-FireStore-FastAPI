@@ -1,69 +1,58 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter
 from schemas.auth import SignUpSchema, LoginSchema
 import requests
-from firebase_admin import credentials, auth, firestore_async
-from utils import firestore_db
+
+from utils import (
+    user_exists,
+    create_user,
+    firebase_config,
+    ExceptionResponse,
+)
 
 router = APIRouter()
 
-@router.post("/signup")
-async def signup(
-    user: SignUpSchema,
-):
+
+# Create a new user
+@router.post("/signup", status_code=201)
+async def signup(user: SignUpSchema):
     username = user.username
     email = user.email
     password = user.password
     full_name = user.full_name
-    # Check firestore if username exists
-    username_ref = (
-        firestore_db.collection("users")
-        .where(filter=firestore_async.firestore.FieldFilter("username", "==", username))
-        .limit(1)
-        .stream()
-    )
-    async for doc in username_ref:
-        if doc.exists:
-            return JSONResponse(
-                content={"message": f"Username {username} already exists"},
-                status_code=400,
-            )
+
+    if await user_exists(username):
+        """If the user already exists, return a 400"""
+        return ExceptionResponse(name="UserNameExists", message=f"User with {username} already exists")
     try:
-        created_user = auth.create_user(email=email, password=password)
-        created_at = created_user.user_metadata.creation_timestamp
-
-        user_ref = firestore_db.collection("users").document(created_user.uid)
-        await user_ref.set(
-            {
-                "email": email,
-                "username": username,
-                "full_name": full_name,
-                "created_at": created_at,
-            }
-        )
-
-        return JSONResponse(
-            content={"message": f"Successfully created user {created_user.uid}"},
-            status_code=200,
-        )
+        created_user = (await create_user(email, password, username, full_name))
+        return created_user.to_dict()
     except Exception as e:
-        print(e)
-        return HTTPException(detail={"message": str(e)}, status_code=400)
+        # If there's an error, return a 400 with the error message
+        return ExceptionResponse(e)
 
 
-@router.post("/login")
-async def loginfirebase(user: LoginSchema):
+@router.post("/signin")
+async def signin(user: LoginSchema):
     email = user.email
     password = user.password
+    
     try:
         signin_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={firebase_config['apiKey']}"
         payload = {"email": email, "password": password, "returnSecureToken": True}
         headers = {"Content-Type": "application/json"}
         response = requests.post(signin_url, headers=headers, json=payload)
-        print(response.json())
-
-        return JSONResponse(content=response.json(), status_code=200)
-    except:
-        return HTTPException(
-            detail={"message": "There was an error logging in"}, status_code=400
-        )
+        json_response = response.json()
+        if response.status_code != 200:
+            return ExceptionResponse(name=json_response["error"]["message"], message="Password Entered is InValid")
+        
+        return {
+            "user_id": json_response["localId"],
+            "email": json_response["email"],
+            "full_name": json_response["displayName"],
+            "access_token": json_response["idToken"],
+            "token_type": "bearer",
+            "expires_in": int(json_response["expiresIn"]),
+            "refresh_token": json_response["refreshToken"],
+        }
+    except Exception as e:
+        return ExceptionResponse(e)

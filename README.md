@@ -24,14 +24,9 @@
   pip install -r requirements.txt
   ```
 
-
-
-
-
 # TODOs
 
-* [ ] User APIs :  Get, Update, Delete
+* [X] User APIs :  Get, Update, Delete
 * [ ] Rate Limiting
-
 * [ ] Unit Test
-* [ ] Password Reset
+* [X] Password Reset

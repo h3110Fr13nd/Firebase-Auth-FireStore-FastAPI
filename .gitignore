@@ -5,3 +5,6 @@ __pycache__/
 *.pem
 
 private_key.json
+.env
+public
+.pytest_cache
