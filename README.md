@@ -1,4 +1,5 @@
 # FastAPI Firebase Authentication with FireStore
+  You Can find and test APIs on [Hosted FASTAPI Server Backend](http://ec2-54-144-109-217.compute-1.amazonaws.com:8010/docs)
 
 ### Installation
 
