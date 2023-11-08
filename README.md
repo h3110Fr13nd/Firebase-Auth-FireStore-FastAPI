@@ -1,5 +1,9 @@
 # FastAPI Firebase Authentication with FireStore
   You Can find and test APIs on [Hosted FASTAPI Server Backend](http://ec2-54-144-109-217.compute-1.amazonaws.com:8010/docs)
+  - Postman APIs with Pre-Configured Environments and Tests
+
+ - Follow the link to join the team and get the collection
+  [![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/join-team?invite_code=5f5099534d0417bfb1b2706c468b3f5b&target_code=8646f36f7c70aa8ada1ef3ab4b948708)
 
 ### Installation
 
